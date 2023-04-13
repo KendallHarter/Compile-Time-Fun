@@ -17,3 +17,6 @@ target_include_directories(khct INTERFACE ${CMAKE_SOURCE_DIR}/khct)
 
 add_executable(string_test tests/string.cpp)
 target_link_libraries(string_test PUBLIC khct)
+
+add_executable(map_test tests/map.cpp)
+target_link_libraries(map_test PUBLIC khct)

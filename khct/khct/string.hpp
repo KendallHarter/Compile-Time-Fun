@@ -9,6 +9,8 @@
 
 namespace khct {
 
+// It would be nice to be able to make these functions generic across any statically sized structs,
+// but it doesn't really seem possible and would be extremely complex if it were
 template<std::size_t Size>
 struct string {
    consteval string() : value{} {}
@@ -48,6 +50,7 @@ struct string {
    constexpr auto begin() noexcept { return value; }
    constexpr auto end() const noexcept { return &value[Size]; }
    constexpr auto end() noexcept { return &value[Size]; }
+   constexpr auto size() noexcept { return Size; }
 
    char value[Size];
    friend auto operator<=>(const string&, const string&) = default;
