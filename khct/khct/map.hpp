@@ -4,6 +4,7 @@
 #include "khct/common.hpp"
 
 #include <algorithm>
+#include <compare>
 #include <ranges>
 #include <type_traits>
 #include <utility>

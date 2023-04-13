@@ -1,6 +1,7 @@
 #ifndef KHCT_COMMON_HPP
 #define KHCT_COMMON_HPP
 
+#include <compare>
 #include <concepts>
 
 namespace khct {
@@ -10,7 +11,7 @@ struct nil_t {
 };
 inline constexpr auto nil{nil_t{}};
 
-/// @brief A simple pair to use as template parameters because std::pair can't
+/// @brief A simple pair to use as template parameters because std::pair can't be
 /// @tparam T1 The first type
 /// @tparam T2 The second type
 template<typename T1, typename T2>
