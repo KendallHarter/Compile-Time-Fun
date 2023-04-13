@@ -1,6 +1,8 @@
 #ifndef KHCT_MAP_HPP
 #define KHCT_MAP_HPP
 
+#include "khct/common.hpp"
+
 #include <algorithm>
 #include <ranges>
 #include <type_traits>
@@ -56,6 +58,35 @@ consteval auto make_map(const std::pair<Key, Value> (&init)[Size], Comp = std::l
    -> map<Key, Value, Size, Comp>
 {
    return map<Key, Value, Size, Comp>{init};
+}
+
+template<typename Key, typename Comp, std::size_t Size, std::array<Key, Size> Keys, auto... Values>
+   requires(sizeof...(Values) == Size && std::is_empty_v<Comp>)
+struct multi_type_map {
+
+   template<Key KeyToFind>
+   consteval auto get() const noexcept
+   {
+      constexpr auto loc = std::lower_bound(
+         std::begin(Keys), std::end(Keys), KeyToFind, [](const auto& a, const auto& b) { return Comp{}(a, b); });
+      if constexpr (loc == std::end(Keys)) {
+         return nil;
+      }
+      else {
+         constexpr auto index = std::distance(std::begin(Keys), loc);
+         return std::get<index>(std::tuple{Values...});
+      }
+   }
+
+   friend auto operator<=>(const multi_type_map&, const multi_type_map&) noexcept = default;
+};
+
+template<pair... Pairs, typename Comp = std::less<void>>
+   requires(all_same<decltype(Pairs.first)...> && std::is_empty_v<Comp>)
+consteval auto make_multi_type_map(Comp = std::less<void>{})
+{
+   using key_type = head<decltype(Pairs.first)...>;
+   return multi_type_map<key_type, Comp, sizeof...(Pairs), {Pairs.first...}, Pairs.second...>{};
 }
 
 } // namespace khct

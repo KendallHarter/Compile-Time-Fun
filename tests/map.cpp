@@ -13,4 +13,10 @@ constexpr auto map3 = merge(map1, map2);
 static_assert(map3[3] == 4);
 static_assert(map3[6] == 7);
 
+constexpr auto type_map = make_multi_type_map<{1, 4}, {2, true}, {3, 2.2}>();
+
+static_assert(type_map.get<2>() == true);
+static_assert(type_map.get<3>() == 2.2);
+static_assert(type_map.get<5>() == nil);
+
 int main() {}
