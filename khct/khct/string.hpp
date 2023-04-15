@@ -72,7 +72,13 @@ namespace detail {
 template<std::size_t Start, std::size_t End>
 struct splice_struct {
    template<std::size_t Size>
-   friend consteval auto operator|(const string<Size>& str, splice_struct<Start, End>) noexcept
+   consteval auto operator()(const string<Size>& str) const noexcept
+   {
+      return str.template splice<Start, End>();
+   }
+
+   template<std::size_t Size>
+   friend consteval auto operator|(const string<Size>& str, splice_struct) noexcept
    {
       return str.template splice<Start, End>();
    }
@@ -81,7 +87,13 @@ struct splice_struct {
 template<std::size_t Padsize, char Filler = ' '>
 struct pad_left_struct {
    template<std::size_t Size>
-   friend consteval auto operator|(const string<Size>& str, pad_left_struct<Padsize, Filler>) noexcept
+   consteval auto operator()(const string<Size>& str) const noexcept
+   {
+      return str.template pad_left<Padsize, Filler>();
+   }
+
+   template<std::size_t Size>
+   friend consteval auto operator|(const string<Size>& str, pad_left_struct) noexcept
    {
       return str.template pad_left<Padsize, Filler>();
    }
@@ -90,7 +102,13 @@ struct pad_left_struct {
 template<std::size_t Padsize, char Filler = ' '>
 struct pad_right_struct {
    template<std::size_t Size>
-   friend consteval auto operator|(const string<Size>& str, pad_right_struct<Padsize, Filler>) noexcept
+   consteval auto operator()(const string<Size>& str) const noexcept
+   {
+      return str.template pad_right<Padsize, Filler>();
+   }
+
+   template<std::size_t Size>
+   friend consteval auto operator|(const string<Size>& str, pad_right_struct) noexcept
    {
       return str.template pad_right<Padsize, Filler>();
    }

@@ -17,8 +17,8 @@ static_assert(map3[6] == 7);
 constexpr auto type_map = make_multi_type_map<{1, 4}, {3, 2.2}, {2, true}>();
 
 static_assert(type_map.get<2>() == true);
-static_assert(type_map.get<3>() == 2.2);
-static_assert(type_map.get<5>() == nil);
+static_assert(get<3>(type_map) == 2.2);
+static_assert((type_map | get<5>) == nil);
 
 constexpr auto lex_comp = [](auto a, auto b) { return std::ranges::lexicographical_compare(a, b); };
 
