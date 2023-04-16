@@ -7,53 +7,57 @@
 #include <concepts>
 #include <ranges>
 #include <string>
+#include <tuple>
 
 namespace khct {
 
 // It would be nice to be able to make these functions generic across any statically sized structs,
 // but it doesn't really seem possible and would be extremely complex if it were
-template<std::size_t Size>
+template<std::size_t RawArraySize>
 struct string {
-   consteval string() : value{} {}
+   consteval string() : value_{} {}
 
-   consteval string(const char (&c)[Size]) : value{} { std::copy(c, c + Size, value); }
+   consteval string(const char (&c)[RawArraySize]) : value_{} { std::copy(c, c + RawArraySize, value_); }
 
+public:
    // Need + 1 size for the null character
    template<std::size_t Start, std::size_t End>
    consteval string<End - Start + 1> splice() const noexcept
    {
       static_assert(End >= Start);
-      static_assert(End <= Size);
+      static_assert(End <= RawArraySize);
       string<End - Start + 1> to_ret{};
-      std::copy(value + Start, value + Start + End, to_ret.begin());
+      std::copy(value_ + Start, value_ + End, to_ret.begin());
       return to_ret;
    }
 
    template<std::size_t Padsize, char Filler = ' '>
-   consteval string<Padsize + Size> pad_left() const noexcept
+   consteval string<Padsize + RawArraySize> pad_left() const noexcept
    {
-      string<Padsize + Size> to_ret{};
-      std::fill(to_ret.value, to_ret.value + Padsize, Filler);
-      std::ranges::copy(*this, to_ret.value + Padsize);
+      string<Padsize + RawArraySize> to_ret{};
+      std::fill(to_ret.value_, to_ret.value_ + Padsize, Filler);
+      std::ranges::copy(*this, to_ret.value_ + Padsize);
       return to_ret;
    }
 
    template<std::size_t Padsize, char Filler = ' '>
-   consteval string<Padsize + Size> pad_right() const noexcept
+   consteval string<Padsize + RawArraySize> pad_right() const noexcept
    {
-      string<Padsize + Size> to_ret{};
+      string<Padsize + RawArraySize> to_ret{};
       std::ranges::copy(*this, to_ret.begin());
-      std::fill(to_ret.begin() + Size - 1, to_ret.end() - 1, Filler);
+      std::fill(to_ret.begin() + RawArraySize - 1, to_ret.end() - 1, Filler);
       return to_ret;
    }
 
-   constexpr auto begin() const noexcept { return value; }
-   constexpr auto begin() noexcept { return value; }
-   constexpr auto end() const noexcept { return &value[Size]; }
-   constexpr auto end() noexcept { return &value[Size]; }
-   constexpr auto size() noexcept { return Size; }
+   constexpr auto begin() const noexcept { return value_; }
+   constexpr auto begin() noexcept { return value_; }
+   constexpr auto end() const noexcept { return &value_[RawArraySize]; }
+   constexpr auto end() noexcept { return &value_[RawArraySize]; }
+   constexpr auto size() const noexcept { return RawArraySize - 1; }
 
-   char value[Size];
+   constexpr char operator[](std::size_t index) const noexcept { return value_[index]; }
+
+   char value_[RawArraySize];
    friend auto operator<=>(const string&, const string&) = default;
 };
 
@@ -65,6 +69,37 @@ consteval auto operator+(const string<SizeL>& lhs, const string<SizeR>& rhs) noe
    std::ranges::copy(lhs, to_ret.begin());
    std::ranges::copy(rhs, to_ret.begin() + SizeL - 1);
    return to_ret;
+}
+
+namespace detail {
+
+template<string Str, char SplitChar, std::size_t MaxSplits>
+consteval auto split_helper() noexcept
+{
+   constexpr auto split_loc = std::ranges::find(Str, SplitChar);
+   if constexpr (split_loc == std::end(Str)) {
+      return std::make_tuple(Str);
+   }
+   else {
+      constexpr auto split_index = std::distance(std::begin(Str), split_loc);
+      constexpr auto split = Str.template splice<0, split_index>();
+      constexpr auto rest = Str.template splice<split_index + 1, Str.size()>();
+      if constexpr (MaxSplits == 1) {
+         return std::make_tuple(split, rest);
+      }
+      else {
+         constexpr auto next_split_num = MaxSplits == 0 ? 0 : MaxSplits - 1;
+         return std::tuple_cat(std::make_tuple(split), split_helper<rest, SplitChar, next_split_num>());
+      }
+   }
+}
+
+} // namespace detail
+
+template<string Str, char SplitChar, std::size_t MaxSplits = 0>
+consteval auto split() noexcept
+{
+   return detail::split_helper<Str, SplitChar, MaxSplits>();
 }
 
 namespace detail {

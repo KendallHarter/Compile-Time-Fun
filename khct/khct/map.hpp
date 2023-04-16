@@ -15,31 +15,31 @@ namespace khct {
 template<typename Key, typename Value, std::size_t Size, typename Comp>
    requires(std::is_empty_v<Comp>)
 struct map {
-   consteval map() noexcept : values{} {}
+   consteval map() noexcept : values_{} {}
 
    consteval map(const std::pair<Key, Value> (&init)[Size]) noexcept
    {
-      std::ranges::copy(init, std::begin(values));
-      std::ranges::sort(values, Comp{});
+      std::ranges::copy(init, std::begin(values_));
+      std::ranges::sort(values_, Comp{});
    }
 
    constexpr std::optional<Value> operator[](const Key& k) const noexcept
    {
       const auto loc = std::lower_bound(
-         std::begin(values), std::end(values), k, [](const auto& a, const auto& b) { return Comp{}(a.first, b); });
-      if (loc == std::end(values)) {
+         std::begin(values_), std::end(values_), k, [](const auto& a, const auto& b) { return Comp{}(a.first, b); });
+      if (loc == std::end(values_)) {
          return std::nullopt;
       }
       return loc->second;
    }
 
-   constexpr auto begin() const noexcept { return values; }
-   constexpr auto begin() noexcept { return values; }
-   constexpr auto end() const noexcept { return &values[Size]; }
-   constexpr auto end() noexcept { return &values[Size]; }
+   constexpr auto begin() const noexcept { return values_; }
+   constexpr auto begin() noexcept { return values_; }
+   constexpr auto end() const noexcept { return &values_[Size]; }
+   constexpr auto end() noexcept { return &values_[Size]; }
    constexpr auto size() noexcept { return Size; }
 
-   std::pair<Key, Value> values[Size];
+   std::pair<Key, Value> values_[Size];
    friend auto operator<=>(const map&, const map&) noexcept = default;
 };
 
