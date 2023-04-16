@@ -20,3 +20,6 @@ target_link_libraries(string_test PUBLIC khct)
 
 add_executable(map_test tests/map.cpp)
 target_link_libraries(map_test PUBLIC khct)
+
+add_executable(json_test tests/json.cpp)
+target_link_libraries(json_test PUBLIC khct)

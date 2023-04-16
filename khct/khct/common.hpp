@@ -7,7 +7,7 @@
 namespace khct {
 
 struct nil_t {
-   friend constexpr auto operator<=>(const nil_t&, const nil_t&) noexcept = default;
+   friend constexpr bool operator==(const nil_t&, const nil_t&) noexcept = default;
 };
 inline constexpr auto nil{nil_t{}};
 
@@ -24,13 +24,17 @@ struct pair {
 template<typename T, typename... Rest>
 inline constexpr bool all_same = (std::same_as<T, Rest> && ...);
 
+namespace detail {
+
 template<typename T, typename...>
 struct head_struct {
    using type = T;
 };
 
+} // namespace detail
+
 template<typename... Ts>
-using head = head_struct<Ts...>::type;
+using head = detail::head_struct<Ts...>::type;
 
 } // namespace khct
 

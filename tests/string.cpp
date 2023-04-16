@@ -17,4 +17,6 @@ static_assert(string{"a"} + string{"Bc"} == "aBc");
 static_assert(split<string{"a,b,c"}, ','>() == std::tuple{string{"a"}, string{"b"}, string{"c"}});
 static_assert(split<string{"a,b,c"}, ',', 1>() == std::tuple{string{"a"}, string{"b,c"}});
 
+static_assert(strip_leading_whitespace<"  \nab">() == "ab");
+
 int main() {}

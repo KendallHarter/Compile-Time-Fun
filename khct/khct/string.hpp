@@ -54,6 +54,7 @@ public:
    constexpr auto end() const noexcept { return &value_[RawArraySize]; }
    constexpr auto end() noexcept { return &value_[RawArraySize]; }
    constexpr auto size() const noexcept { return RawArraySize - 1; }
+   constexpr auto empty() const noexcept { return size() == 0; }
 
    constexpr char operator[](std::size_t index) const noexcept { return value_[index]; }
 
@@ -100,6 +101,22 @@ template<string Str, char SplitChar, std::size_t MaxSplits = 0>
 consteval auto split() noexcept
 {
    return detail::split_helper<Str, SplitChar, MaxSplits>();
+}
+
+template<string Str>
+consteval auto strip_leading_whitespace() noexcept
+{
+   // TODO: Maybe create a one_of class so this is cleaner (e.g., c == one_of{' ', '\f', ...})
+   constexpr auto is_ws
+      = [](char c) { return c == ' ' || c == '\f' || c == '\n' || c == '\r' || c == '\t' || c == '\v'; };
+   constexpr auto non_ws_loc = std::ranges::find_if_not(Str, is_ws);
+   if constexpr (non_ws_loc == std::end(Str)) {
+      return string{""};
+   }
+   else {
+      constexpr auto splice_loc = std::distance(std::begin(Str), non_ws_loc);
+      return Str.template splice<splice_loc, Str.size()>();
+   }
 }
 
 namespace detail {
