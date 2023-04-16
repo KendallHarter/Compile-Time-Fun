@@ -29,12 +29,16 @@ struct unexpected_input_struct {
 struct invalid_double_struct {
    friend constexpr bool operator==(const invalid_double_struct&, const invalid_double_struct&) noexcept = default;
 };
+struct invalid_string_struct {
+   friend constexpr bool operator==(const invalid_string_struct&, const invalid_string_struct&) noexcept = default;
+};
 } // namespace detail
 
 inline constexpr auto number_too_large = detail::number_too_large_struct{};
 inline constexpr auto remaining_input = detail::remaining_input_struct{};
 inline constexpr auto unexpected_input = detail::unexpected_input_struct{};
 inline constexpr auto invalid_double = detail::invalid_double_struct{};
+inline constexpr auto invalid_string = detail::invalid_string_struct{};
 
 } // namespace json_error
 
@@ -43,6 +47,7 @@ constexpr bool is_json_error(json_error::detail::number_too_large_struct) { retu
 constexpr bool is_json_error(json_error::detail::remaining_input_struct) { return true; }
 constexpr bool is_json_error(json_error::detail::unexpected_input_struct) { return true; }
 constexpr bool is_json_error(json_error::detail::invalid_double_struct) { return true; }
+constexpr bool is_json_error(json_error::detail::invalid_string_struct) { return true; }
 
 struct true_struct {
    friend constexpr bool operator==(const true_struct&, const true_struct&) noexcept = default;
@@ -159,16 +164,6 @@ consteval std::optional<double> to_double() noexcept
    }
 }
 
-consteval auto tuple_cat_or_propagate_error(auto so_far, auto rest) noexcept
-{
-   if constexpr (is_json_error(rest)) {
-      return rest;
-   }
-   else {
-      return std::tuple_cat(so_far, rest);
-   }
-}
-
 template<string Str>
 consteval auto parse_json_value() noexcept;
 
@@ -194,6 +189,37 @@ consteval auto parse_array_value() noexcept
    }
    else {
       return pair{json_error::unexpected_input, string{""}};
+   }
+}
+
+template<string Str>
+consteval auto parse_json_string() noexcept
+{
+   if constexpr (Str[0] != '"') {
+      return pair{json_error::invalid_string, string{""}};
+   }
+   else {
+      constexpr auto str_end = []() {
+         auto loc = Str.begin();
+         while (true) {
+            ++loc;
+            while (loc != Str.end() && *loc != '\"') {
+               ++loc;
+            }
+            // The below doesn't work for some reason...?
+            // loc = std::find(loc + 1, Str.end(), '"');
+            if (loc == Str.end() || *(loc - 1) != '\\') {
+               return loc;
+            }
+         }
+      }();
+      if constexpr (str_end == Str.end()) {
+         return pair{json_error::invalid_string, string{""}};
+      }
+      else {
+         constexpr auto end_index = std::distance(Str.begin(), str_end);
+         return pair{Str | splice<1, end_index>, Str | splice<end_index + 1, Str.size()>};
+      }
    }
 }
 
@@ -259,7 +285,9 @@ consteval auto parse_json_value() noexcept
    else if constexpr (std::string_view(Str.value_).starts_with("null")) {
       return pair{null, Str | splice<4, Str.size()>};
    }
-   // TODO: Strings
+   else if constexpr (Str[0] == '"') {
+      return parse_json_string<Str>();
+   }
    else {
       return pair{json_error::unexpected_input, string{""}};
    }
