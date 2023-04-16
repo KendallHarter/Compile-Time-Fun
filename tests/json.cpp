@@ -30,6 +30,18 @@ static_assert(parse_json<"[1]">() == std::tuple{1});
 static_assert(parse_json<"[1, 2]">() == std::tuple{1, 2});
 static_assert(parse_json<"[true, false, null]">() == std::tuple{true, false, null});
 
+// Objects
+static_assert(parse_json<"{}">().get<"">() == nil);
+static_assert(parse_json<R"({"hi": 4})">().get<"hi">() == 4);
+static_assert(parse_json<R"({"hi": 202, "sup": true})">().get<"sup">() == true);
+// constexpr auto test_map = parse_json<R"({
+//    "array": [1, 2, 3],
+//    "float": 1.2e10,
+//    "object": {
+//       "int": 20
+//    }
+// })">();
+
 // Errors
 static_assert(parse_json<"9999999999999999999999999999999999999999999999">() == json_error::number_too_large);
 static_assert(parse_json<"2ee20">() == json_error::invalid_double);

@@ -21,8 +21,25 @@ struct pair {
    friend constexpr auto operator<=>(const pair&, const pair&) noexcept = default;
 };
 
-template<typename T, typename... Rest>
-inline constexpr bool all_same = (std::same_as<T, Rest> && ...);
+namespace detail {
+template<typename T>
+struct tuple_base {
+   [[no_unique_address]] T value;
+   friend constexpr auto operator<=>(const tuple_base&, const tuple_base&) noexcept = default;
+};
+} // namespace detail
+
+template<typename... Ts>
+struct tuple : detail::tuple_base<Ts>... {
+   friend constexpr auto operator<=>(const tuple&, const tuple&) noexcept = default;
+
+   inline static constexpr auto size = sizeof...(Ts);
+};
+
+// TODO: Implement get, tuple_cat
+
+template<typename... Types>
+inline constexpr bool has_common_type = requires() { typename std::common_type<Types...>::type; };
 
 namespace detail {
 

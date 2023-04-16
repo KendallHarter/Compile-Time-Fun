@@ -22,9 +22,11 @@ static_assert((type_map | get<5>) == nil);
 
 constexpr auto lex_comp = [](auto a, auto b) { return std::ranges::lexicographical_compare(a, b); };
 
-constexpr auto type_map2 = make_multi_type_map<{string{"banana"}, 2}, {string{"alpaca"}, 'a'}>(lex_comp);
+constexpr auto type_map2
+   = make_multi_type_map<{string{"banana"}, 2}, {string{"alpaca"}, 'a'}, {string{"test"}, 't'}>(lex_comp);
 
-static_assert(type_map2.get<"alpaca">() == 'a');
-static_assert(type_map2.get<"banana">() == 2);
+static_assert(type_map2.get<string{"alpaca"}>() == 'a');
+static_assert(type_map2.get<string{"banana"}>() == 2);
+static_assert(type_map2.get<string{"test"}>() == 't');
 
 int main() {}

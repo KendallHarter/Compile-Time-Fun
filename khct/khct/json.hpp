@@ -2,6 +2,7 @@
 #define KHCT_JSON_HPP
 
 #include <khct/common.hpp>
+#include <khct/map.hpp>
 #include <khct/string.hpp>
 
 #include <algorithm>
@@ -32,6 +33,11 @@ struct invalid_double_struct {
 struct invalid_string_struct {
    friend constexpr bool operator==(const invalid_string_struct&, const invalid_string_struct&) noexcept = default;
 };
+struct unexpected_end_of_input_struct {
+   friend constexpr bool
+      operator==(const unexpected_end_of_input_struct&, const unexpected_end_of_input_struct&) noexcept
+      = default;
+};
 } // namespace detail
 
 inline constexpr auto number_too_large = detail::number_too_large_struct{};
@@ -39,6 +45,7 @@ inline constexpr auto remaining_input = detail::remaining_input_struct{};
 inline constexpr auto unexpected_input = detail::unexpected_input_struct{};
 inline constexpr auto invalid_double = detail::invalid_double_struct{};
 inline constexpr auto invalid_string = detail::invalid_string_struct{};
+inline constexpr auto unexpected_end_of_input = detail::unexpected_end_of_input_struct{};
 
 } // namespace json_error
 
@@ -48,6 +55,7 @@ constexpr bool is_json_error(json_error::detail::remaining_input_struct) { retur
 constexpr bool is_json_error(json_error::detail::unexpected_input_struct) { return true; }
 constexpr bool is_json_error(json_error::detail::invalid_double_struct) { return true; }
 constexpr bool is_json_error(json_error::detail::invalid_string_struct) { return true; }
+constexpr bool is_json_error(json_error::detail::unexpected_end_of_input_struct) { return true; }
 
 struct true_struct {
    friend constexpr bool operator==(const true_struct&, const true_struct&) noexcept = default;
@@ -76,6 +84,7 @@ namespace detail {
 
 inline constexpr auto is_num = [](char c) { return c >= '0' && c <= '9'; };
 inline constexpr auto is_nonzero_num = [](char c) { return c >= '1' && c <= '9'; };
+inline constexpr auto lex_comp = [](auto a, auto b) { return std::ranges::lexicographical_compare(a, b); };
 
 // Pre: Leading whitespace is stripped
 template<string Str>
@@ -223,12 +232,71 @@ consteval auto parse_json_string() noexcept
    }
 }
 
+template<string Str>
+consteval auto parse_object_value() noexcept
+{
+   constexpr auto name_and_rest = parse_json_string<Str>();
+   if constexpr (is_json_error(name_and_rest)) {
+      return name_and_rest;
+   }
+   else {
+      constexpr auto colon_start = strip_leading_whitespace<name_and_rest.second>();
+      if constexpr (colon_start[0] != ':') {
+         return {json_error::unexpected_input, string{""}};
+      }
+      else {
+         constexpr auto value_start = strip_leading_whitespace<colon_start | splice<1, colon_start.size()>>();
+         constexpr auto value_and_next = parse_json_value<value_start>();
+         if constexpr (is_json_error(value_and_next)) {
+            return value_and_next;
+         }
+         else {
+            constexpr auto indicator_start = strip_leading_whitespace<value_and_next.second>();
+            constexpr auto ret_val = std::tuple{pair{name_and_rest.first, value_and_next.first}};
+            if constexpr (indicator_start.size() == 0) {
+               return pair{json_error::unexpected_end_of_input, string{""}};
+            }
+            else {
+               constexpr auto next_str
+                  = strip_leading_whitespace<indicator_start | splice<1, indicator_start.size()>>();
+               if constexpr (indicator_start[0] == '}') {
+                  return pair{ret_val, next_str};
+               }
+               else if constexpr (indicator_start[0] == ',') {
+                  constexpr auto next_val = parse_object_value<next_str>();
+                  return pair{std::tuple_cat(ret_val, next_val.first), next_val.second};
+               }
+               else {
+                  return pair{json_error::unexpected_input, string{""}};
+               }
+            }
+         }
+      }
+   }
+}
+
 // Pre: Leading whitespace is stripped
 template<string Str>
 consteval auto parse_json_value() noexcept
 {
    if constexpr (Str[0] == '{') {
-      // TODO: Object
+      constexpr auto next = strip_leading_whitespace<Str | splice<1, Str.size()>>();
+      if constexpr (next[0] == '}') {
+         // Create an empty multi_type_map in this case
+         return pair{multi_type_map<string<1>, decltype(lex_comp), 0, {}, {}>{}, next | splice<1, next.size()>};
+      }
+      else {
+         constexpr auto tuple_val = parse_object_value<next>();
+         if constexpr (is_json_error(tuple_val.first)) {
+            return tuple_val;
+         }
+         else {
+            constexpr auto map = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+               return make_multi_type_map<std::get<Is>(tuple_val.first)...>(lex_comp);
+            }(std::make_index_sequence<std::tuple_size_v<decltype(tuple_val.first)>>{});
+            return pair{map, tuple_val.second};
+         }
+      }
    }
    else if constexpr (Str[0] == '[') {
       constexpr auto next = strip_leading_whitespace<Str | splice<1, Str.size()>>();
@@ -242,10 +310,11 @@ consteval auto parse_json_value() noexcept
    else if constexpr (is_nonzero_num(Str[0]) || Str[0] == '-') {
       // Look ahead for a period or e to determine if it's a float
       constexpr auto end_number_loc = std::ranges::find_if_not(
-         Str, [](char c) { return c == '-' || c == '.' || c == 'e' || c == '+' || is_num(c); });
-      constexpr auto has_period_or_e
-         = std::ranges::find_if(Str, [](char c) { return c == '.' || c == 'e' || c == 'E'; }) != std::end(Str);
+         Str, [](char c) { return c == '-' || c == '.' || c == 'e' || c == 'E' || c == '+' || is_num(c); });
+      constexpr auto num_str = Str | splice<0, std::distance(std::begin(Str), end_number_loc)>;
       constexpr auto ret_str = Str | splice<std::distance(std::begin(Str), end_number_loc), Str.size()>;
+      constexpr auto has_period_or_e
+         = std::ranges::find_if(num_str, [](char c) { return c == '.' || c == 'e' || c == 'E'; }) != std::end(num_str);
       if constexpr (has_period_or_e) {
          constexpr auto val = to_double<Str>();
          if constexpr (val) {

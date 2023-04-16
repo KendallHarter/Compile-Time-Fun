@@ -49,6 +49,13 @@ public:
       return to_ret;
    }
 
+   template<std::size_t NewSize>
+      requires(NewSize > RawArraySize)
+   consteval operator string<NewSize>() const noexcept
+   {
+      return pad_right<NewSize - RawArraySize>();
+   }
+
    constexpr auto begin() const noexcept { return value_; }
    constexpr auto begin() noexcept { return value_; }
    constexpr auto end() const noexcept { return &value_[RawArraySize]; }

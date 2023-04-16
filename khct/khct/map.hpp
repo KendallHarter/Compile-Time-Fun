@@ -89,14 +89,14 @@ struct multi_type_map {
 };
 
 template<pair... Pairs, typename Comp = std::less<void>>
-   requires(all_same<decltype(Pairs.first)...> && std::is_empty_v<Comp>)
+   requires(has_common_type<decltype(Pairs.first)...> && std::is_empty_v<Comp>)
 consteval auto make_multi_type_map(Comp = std::less<void>{})
 {
-   using key_type = head<decltype(Pairs.first)...>;
+   using key_type = std::common_type_t<decltype(Pairs.first)...>;
    constexpr pair sorted_keys_and_indexes = []() {
       std::array<std::size_t, sizeof...(Pairs)> indexes;
       std::iota(indexes.begin(), indexes.end(), 0);
-      std::array keys{Pairs.first...};
+      std::array<key_type, sizeof...(Pairs)> keys{Pairs.first...};
       // need to sort the indexes before the keys
       std::ranges::sort(indexes, [&](std::size_t a, std::size_t b) { return Comp{}(keys[a], keys[b]); });
       std::ranges::sort(keys, Comp{});
