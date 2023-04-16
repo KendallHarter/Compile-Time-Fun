@@ -6,7 +6,7 @@ using namespace khct;
 static_assert(parse_json<"20 ">() == 20);
 static_assert(parse_json<" -30">() == -30);
 
-// // Floats
+// Floats
 constexpr auto abs_ = [](auto x) { return x < 0 ? -x : x; };
 static_assert(parse_json<"3.25">() == 3.25);
 static_assert(parse_json<"-3.5">() == -3.5);
@@ -18,19 +18,19 @@ static_assert(abs_(parse_json<"25e-2">() - 25e-2) <= 0.0001);
 static_assert(parse_json<R"( "hi" )">() == string{"hi"});
 static_assert(parse_json<R"( "\"hi\"" )">() == string{R"(\"hi\")"});
 
-// // Special values
+// Special values
 static_assert(parse_json<"true">() == true);
 static_assert(parse_json<"false">() == false);
 static_assert(parse_json<"null">() == null);
 
-// // Arrays
+// Arrays
 static_assert(parse_json<"[]">() == std::tuple{});
 static_assert(parse_json<"[[]]">() == std::tuple{std::tuple{}});
 static_assert(parse_json<"[1]">() == std::tuple{1});
 static_assert(parse_json<"[1, 2]">() == std::tuple{1, 2});
 static_assert(parse_json<"[true, false, null]">() == std::tuple{true, false, null});
 
-// // Errors
+// Errors
 static_assert(parse_json<"9999999999999999999999999999999999999999999999">() == json_error::number_too_large);
 static_assert(parse_json<"2ee20">() == json_error::invalid_double);
 static_assert(parse_json<"2,3">() == json_error::remaining_input);
