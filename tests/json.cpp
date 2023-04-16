@@ -21,6 +21,10 @@ static_assert(parse_json<"null">() == null);
 
 // Arrays
 static_assert(parse_json<"[]">() == std::tuple{});
+static_assert(parse_json<"[[]]">() == std::tuple{std::tuple{}});
+static_assert(parse_json<"[1]">() == std::tuple{1});
+static_assert(parse_json<"[1, 2]">() == std::tuple{1, 2});
+static_assert(parse_json<"[true, false, null]">() == std::tuple{true, false, null});
 
 // Errors
 static_assert(parse_json<"9999999999999999999999999999999999999999999999">() == json_error::number_too_large);

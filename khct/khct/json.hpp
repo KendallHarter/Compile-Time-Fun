@@ -169,6 +169,34 @@ consteval auto tuple_cat_or_propagate_error(auto so_far, auto rest) noexcept
    }
 }
 
+template<string Str>
+consteval auto parse_json_value() noexcept;
+
+template<string ToParse>
+consteval auto parse_array_value() noexcept
+{
+   constexpr auto first_value_and_rest = parse_json_value<ToParse>();
+   // First value has been parsed; check for a comma and quit parsing if there isn't one
+   constexpr auto first_value = first_value_and_rest.first;
+   constexpr auto rest = strip_leading_whitespace<first_value_and_rest.second>();
+   if constexpr (rest[0] == ']') {
+      return pair{std::tuple{first_value}, rest | splice<1, rest.size()>};
+   }
+   else if constexpr (rest[0] == ',') {
+      constexpr auto parse_next = strip_leading_whitespace<rest | splice<1, rest.size()>>();
+      constexpr auto value_and_rest = parse_array_value<parse_next>();
+      if constexpr (is_json_error(value_and_rest.first)) {
+         return value_and_rest;
+      }
+      else {
+         return pair{std::tuple_cat(std::tuple{first_value}, value_and_rest.first), value_and_rest.second};
+      }
+   }
+   else {
+      return pair{json_error::unexpected_input, string{""}};
+   }
+}
+
 // Pre: Leading whitespace is stripped
 template<string Str>
 consteval auto parse_json_value() noexcept
@@ -182,8 +210,7 @@ consteval auto parse_json_value() noexcept
          return pair{std::tuple{}, next | splice<1, next.size()>};
       }
       else {
-         // TODO: Actual arrays
-         return pair{json_error::unexpected_input, string{""}};
+         return parse_array_value<next>();
       }
    }
    else if constexpr (is_nonzero_num(Str[0]) || Str[0] == '-') {
@@ -232,6 +259,7 @@ consteval auto parse_json_value() noexcept
    else if constexpr (std::string_view(Str.value_).starts_with("null")) {
       return pair{null, Str | splice<4, Str.size()>};
    }
+   // TODO: Strings
    else {
       return pair{json_error::unexpected_input, string{""}};
    }
