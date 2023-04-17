@@ -107,35 +107,36 @@ consteval auto make_multi_type_map(Comp = std::less<void>{})
    return multi_type_map<key_type, Comp, sizeof...(Pairs), keys, indexes, Pairs.second...>{};
 }
 
-namespace detail {
-template<typename KeyType, KeyType KeyValue>
-struct get_struct {
-   template<
-      typename Comp,
-      std::size_t Size,
-      std::array<KeyType, Size> Keys,
-      std::array<std::size_t, Size> Mapping,
-      auto... Values>
-   consteval auto operator()(const multi_type_map<KeyType, Comp, Size, Keys, Mapping, Values...>& map) const noexcept
-   {
-      return map.template get<KeyValue>();
-   }
+// namespace detail {
+// template<typename KeyType, KeyType KeyValue>
+// struct get_struct {
+//    template<
+//       typename Comp,
+//       std::size_t Size,
+//       std::array<KeyType, Size> Keys,
+//       std::array<std::size_t, Size> Mapping,
+//       auto... Values>
+//    consteval auto operator()(const multi_type_map<KeyType, Comp, Size, Keys, Mapping, Values...>& map) const noexcept
+//    {
+//       return map.template get<KeyValue>();
+//    }
 
-   template<
-      typename Comp,
-      std::size_t Size,
-      std::array<KeyType, Size> Keys,
-      std::array<std::size_t, Size> Mapping,
-      auto... Values>
-   friend consteval auto operator|(const multi_type_map<KeyType, Comp, Size, Keys, Mapping, Values...>& map, get_struct)
-   {
-      return map.template get<KeyValue>();
-   }
-};
-} // namespace detail
+//    template<
+//       typename Comp,
+//       std::size_t Size,
+//       std::array<KeyType, Size> Keys,
+//       std::array<std::size_t, Size> Mapping,
+//       auto... Values>
+//    friend consteval auto operator|(const multi_type_map<KeyType, Comp, Size, Keys, Mapping, Values...>& map,
+//    get_struct)
+//    {
+//       return map.template get<KeyValue>();
+//    }
+// };
+// } // namespace detail
 
-template<auto KeyValue>
-constexpr inline auto get = detail::get_struct<decltype(KeyValue), KeyValue>{};
+// template<auto KeyValue>
+// constexpr inline auto get = detail::get_struct<decltype(KeyValue), KeyValue>{};
 
 } // namespace khct
 

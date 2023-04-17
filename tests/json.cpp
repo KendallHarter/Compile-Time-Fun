@@ -24,23 +24,24 @@ static_assert(parse_json<"false">() == false);
 static_assert(parse_json<"null">() == null);
 
 // Arrays
-static_assert(parse_json<"[]">() == std::tuple{});
-static_assert(parse_json<"[[]]">() == std::tuple{std::tuple{}});
-static_assert(parse_json<"[1]">() == std::tuple{1});
-static_assert(parse_json<"[1, 2]">() == std::tuple{1, 2});
-static_assert(parse_json<"[true, false, null]">() == std::tuple{true, false, null});
+static_assert(parse_json<"[]">() == tuple{});
+static_assert(parse_json<"[[]]">() == tuple{tuple{}});
+static_assert(parse_json<"[1]">() == tuple{1u});
+static_assert(parse_json<"[1, 2]">() == tuple{1u, 2u});
+static_assert(parse_json<"[true, false, null]">() == tuple{true, false, null});
 
 // Objects
 static_assert(parse_json<"{}">().get<"">() == nil);
-static_assert(parse_json<R"({"hi": 4})">().get<"hi">() == 4);
+static_assert(parse_json<R"({"hi": 4})">().get<"hi">() == 4u);
 static_assert(parse_json<R"({"hi": 202, "sup": true})">().get<"sup">() == true);
-// constexpr auto test_map = parse_json<R"({
-//    "array": [1, 2, 3],
-//    "float": 1.2e10,
-//    "object": {
-//       "int": 20
-//    }
-// })">();
+
+constexpr auto test_map = parse_json<R"({
+   "float": 1.2e10,
+   "object": {
+      "array": [true, false, 3]
+   }
+})">();
+static_assert(test_map.get<"object">().get<"array">() == tuple{true, false, 3ul});
 
 // Errors
 static_assert(parse_json<"9999999999999999999999999999999999999999999999">() == json_error::number_too_large);

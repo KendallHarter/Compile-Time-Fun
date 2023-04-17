@@ -184,7 +184,7 @@ consteval auto parse_array_value() noexcept
    constexpr auto first_value = first_value_and_rest.first;
    constexpr auto rest = strip_leading_whitespace<first_value_and_rest.second>();
    if constexpr (rest[0] == ']') {
-      return pair{std::tuple{first_value}, rest | splice<1, rest.size()>};
+      return pair{tuple{first_value}, rest | splice<1, rest.size()>};
    }
    else if constexpr (rest[0] == ',') {
       constexpr auto parse_next = strip_leading_whitespace<rest | splice<1, rest.size()>>();
@@ -193,7 +193,7 @@ consteval auto parse_array_value() noexcept
          return value_and_rest;
       }
       else {
-         return pair{std::tuple_cat(std::tuple{first_value}, value_and_rest.first), value_and_rest.second};
+         return pair{tuple_cat(tuple{first_value}, value_and_rest.first), value_and_rest.second};
       }
    }
    else {
@@ -242,7 +242,7 @@ consteval auto parse_object_value() noexcept
    else {
       constexpr auto colon_start = strip_leading_whitespace<name_and_rest.second>();
       if constexpr (colon_start[0] != ':') {
-         return {json_error::unexpected_input, string{""}};
+         return pair{json_error::unexpected_input, string{""}};
       }
       else {
          constexpr auto value_start = strip_leading_whitespace<colon_start | splice<1, colon_start.size()>>();
@@ -252,7 +252,7 @@ consteval auto parse_object_value() noexcept
          }
          else {
             constexpr auto indicator_start = strip_leading_whitespace<value_and_next.second>();
-            constexpr auto ret_val = std::tuple{pair{name_and_rest.first, value_and_next.first}};
+            constexpr auto ret_val = tuple{pair{name_and_rest.first, value_and_next.first}};
             if constexpr (indicator_start.size() == 0) {
                return pair{json_error::unexpected_end_of_input, string{""}};
             }
@@ -264,7 +264,7 @@ consteval auto parse_object_value() noexcept
                }
                else if constexpr (indicator_start[0] == ',') {
                   constexpr auto next_val = parse_object_value<next_str>();
-                  return pair{std::tuple_cat(ret_val, next_val.first), next_val.second};
+                  return pair{tuple_cat(ret_val, next_val.first), next_val.second};
                }
                else {
                   return pair{json_error::unexpected_input, string{""}};
@@ -292,8 +292,8 @@ consteval auto parse_json_value() noexcept
          }
          else {
             constexpr auto map = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-               return make_multi_type_map<std::get<Is>(tuple_val.first)...>(lex_comp);
-            }(std::make_index_sequence<std::tuple_size_v<decltype(tuple_val.first)>>{});
+               return make_multi_type_map<get<Is>(tuple_val.first)...>(lex_comp);
+            }(std::make_index_sequence<tuple_val.first.size>{});
             return pair{map, tuple_val.second};
          }
       }
@@ -301,7 +301,7 @@ consteval auto parse_json_value() noexcept
    else if constexpr (Str[0] == '[') {
       constexpr auto next = strip_leading_whitespace<Str | splice<1, Str.size()>>();
       if constexpr (next[0] == ']') {
-         return pair{std::tuple{}, next | splice<1, next.size()>};
+         return pair{tuple{}, next | splice<1, next.size()>};
       }
       else {
          return parse_array_value<next>();
