@@ -92,6 +92,9 @@ struct tuple : std::remove_reference_t<decltype(*detail::make_tuple<Ts...>(std::
    inline static constexpr auto size = sizeof...(Ts);
 };
 
+// TODO: The comparison operator sometimes doesn't work even though it should be
+//       Notably the true_ and false_ structures won't match unless there is another type
+//       that matches exactly (I have no idea why though)
 template<typename... Ts1, typename... Ts2>
    requires((std::equality_comparable_with<Ts1, Ts2> && ...))
 constexpr bool operator==(const tuple<Ts1...>& lhs, const tuple<Ts2...>& rhs) noexcept
