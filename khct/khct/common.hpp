@@ -119,7 +119,7 @@ constexpr auto get(const tuple<Ts...> t) noexcept
 }
 
 template<typename... Types>
-inline constexpr bool has_common_type = requires() { typename std::common_type<Types...>::type; };
+concept has_common_type = requires() { typename std::common_type<Types...>::type; };
 
 namespace detail {
 
