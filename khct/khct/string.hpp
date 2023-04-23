@@ -6,7 +6,7 @@
 #include <compare>
 #include <concepts>
 #include <ranges>
-#include <string>
+#include <string_view>
 #include <tuple>
 
 namespace khct {
@@ -55,6 +55,8 @@ public:
    {
       return pad_right<NewSize - RawArraySize>();
    }
+
+   consteval operator std::string_view() const noexcept { return {begin(), end()}; }
 
    constexpr auto begin() const noexcept { return value_; }
    constexpr auto begin() noexcept { return value_; }

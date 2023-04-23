@@ -10,6 +10,7 @@ if (MSVC)
    add_compile_options(/W4)
 else()
    add_compile_options(-Wall -Wextra -Wpedantic)
+   set(CMAKE_CXX_FLAGS_RELEASE -s)
 endif()
 
 add_library(khct INTERFACE)
