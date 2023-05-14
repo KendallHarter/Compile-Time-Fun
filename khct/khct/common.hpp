@@ -22,6 +22,16 @@ struct pair {
    friend constexpr auto operator<=>(const pair&, const pair&) noexcept = default;
 };
 
+// clang-format off
+template<typename T, typename U>
+concept weakly_equality_comparible_with = requires (const std::remove_reference_t<T>& t, const std::remove_reference_t<U>& u) {
+   { t == u } -> std::convertible_to<bool>;
+   { t != u } -> std::convertible_to<bool>;
+   { u == t } -> std::convertible_to<bool>;
+   { u != t } -> std::convertible_to<bool>;
+};
+// clang-format on
+
 namespace detail {
 
 template<std::size_t I, auto First, auto... Rest>
@@ -38,17 +48,22 @@ consteval auto get_at_index() noexcept
 template<typename T>
 struct type_holder {
    using type = T;
-   friend constexpr auto operator<=>(const type_holder&, const type_holder&) noexcept = default;
 };
 
 template<typename T, std::size_t I>
 struct tuple_base {
    [[no_unique_address]] T value;
+   friend constexpr bool operator==(const tuple_base&, const tuple_base&) noexcept = default;
    friend constexpr auto operator<=>(const tuple_base&, const tuple_base&) noexcept = default;
 };
 
 template<pair... TypesAndIndexes>
 struct tuple_impl : tuple_base<typename decltype(TypesAndIndexes.first)::type, TypesAndIndexes.second>... {
+   // template<typename... Ts, std::size_t... Is>
+   // constexpr tuple_impl(std::index_sequence<Is...>, const Ts&... values) noexcept
+   //    : tuple_base<typename decltype(get_at_index<Is, TypesAndIndexes...>().first)::type, get_at_index<Is,
+   //    TypesAndIndexes...>().second>{values}...
+   // {}
 
    template<std::size_t I>
    constexpr const auto& get() const& noexcept
@@ -60,7 +75,8 @@ struct tuple_impl : tuple_base<typename decltype(TypesAndIndexes.first)::type, T
    template<std::size_t I>
    constexpr auto& get() & noexcept
    {
-      return const_cast<const tuple_impl*>(this)->get<I>();
+      constexpr auto use_pair = get_at_index<I, TypesAndIndexes...>();
+      return static_cast<tuple_base<typename decltype(use_pair.first)::type, use_pair.second>*>(this)->value;
    }
 
    template<std::size_t I>
@@ -69,6 +85,7 @@ struct tuple_impl : tuple_base<typename decltype(TypesAndIndexes.first)::type, T
       return get<I>();
    }
 
+   friend constexpr bool operator==(const tuple_impl&, const tuple_impl&) noexcept = default;
    friend constexpr auto operator<=>(const tuple_impl&, const tuple_impl&) noexcept = default;
 };
 
@@ -85,18 +102,19 @@ struct tuple : std::remove_reference_t<decltype(*detail::make_tuple<Ts...>(std::
    using base = std::remove_reference_t<decltype(*detail::make_tuple<Ts...>(std::index_sequence_for<Ts...>{}))>;
 
    // TODO: Move only types?
-   constexpr tuple(const Ts&... values) : base{values...} {}
+   // constexpr tuple(const Ts&... values) : base{std::index_sequence_for<Ts...>{}, values...} {}
+   constexpr tuple(const Ts&... values) noexcept : base{values...} {}
 
+   friend constexpr bool operator==(const tuple&, const tuple&) noexcept = default;
    friend constexpr auto operator<=>(const tuple&, const tuple&) noexcept = default;
 
    inline static constexpr auto size = sizeof...(Ts);
 };
 
-// TODO: The comparison operator sometimes doesn't work even though it should be
-//       Notably the true_ and false_ structures won't match unless there is another type
-//       that matches exactly (I have no idea why though)
+// std::equality_comparable_with is too strong here as it requires there to be a common reference type
+// between the two types; we don't want this
 template<typename... Ts1, typename... Ts2>
-   requires((std::equality_comparable_with<Ts1, Ts2> && ...))
+   requires(sizeof...(Ts1) == sizeof...(Ts2) && (weakly_equality_comparible_with<Ts1, Ts2> && ...))
 constexpr bool operator==(const tuple<Ts1...>& lhs, const tuple<Ts2...>& rhs) noexcept
 {
    return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
