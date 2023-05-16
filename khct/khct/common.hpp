@@ -52,6 +52,10 @@ struct type_holder {
 
 template<typename T, std::size_t I>
 struct tuple_base {
+   // TODO: Move only types?
+   // This is needed for some reason???
+   constexpr tuple_base(const T& val) : value{val} {}
+
    [[no_unique_address]] T value;
    friend constexpr bool operator==(const tuple_base&, const tuple_base&) noexcept = default;
    friend constexpr auto operator<=>(const tuple_base&, const tuple_base&) noexcept = default;
@@ -59,12 +63,6 @@ struct tuple_base {
 
 template<pair... TypesAndIndexes>
 struct tuple_impl : tuple_base<typename decltype(TypesAndIndexes.first)::type, TypesAndIndexes.second>... {
-   // template<typename... Ts, std::size_t... Is>
-   // constexpr tuple_impl(std::index_sequence<Is...>, const Ts&... values) noexcept
-   //    : tuple_base<typename decltype(get_at_index<Is, TypesAndIndexes...>().first)::type, get_at_index<Is,
-   //    TypesAndIndexes...>().second>{values}...
-   // {}
-
    template<std::size_t I>
    constexpr const auto& get() const& noexcept
    {
@@ -102,7 +100,6 @@ struct tuple : std::remove_reference_t<decltype(*detail::make_tuple<Ts...>(std::
    using base = std::remove_reference_t<decltype(*detail::make_tuple<Ts...>(std::index_sequence_for<Ts...>{}))>;
 
    // TODO: Move only types?
-   // constexpr tuple(const Ts&... values) : base{std::index_sequence_for<Ts...>{}, values...} {}
    constexpr tuple(const Ts&... values) noexcept : base{values...} {}
 
    friend constexpr bool operator==(const tuple&, const tuple&) noexcept = default;
